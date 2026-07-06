@@ -29,8 +29,11 @@ def main():
     raw_news = crawler.fetch_all_news()
     
     if not raw_news:
-        print("⚠️  未抓取到任何新闻，程序退出")
-        return False
+        print("⚠️  未抓取到任何新闻，发送提示通知")
+        from datetime import datetime as dt
+        content = "🚁 **低空行业每日资讯**\n\n📅 日期: " + dt.now().strftime('%Y年%m月%d日') + "\n\n今日资讯源暂时无法访问，可能为网络波动，请稍后手动查看。"
+        bot.send_markdown_message(content)
+        return True
     print()
     
     # 3. 去重处理
