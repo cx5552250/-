@@ -1,5 +1,11 @@
+import os
+
 # 企业微信机器人配置
-WECHAT_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE
+# 优先从环境变量读取（GitHub Actions通过secrets注入），否则使用默认值
+WECHAT_WEBHOOK_URL = os.environ.get(
+    "WECHAT_WEBHOOK_URL",
+    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE"
+)
 
 # 资讯源配置（可根据需要添加或删除）
 NEWS_SOURCES = [
