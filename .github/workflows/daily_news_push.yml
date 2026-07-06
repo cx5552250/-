@@ -24,6 +24,19 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: 测试企业微信Webhook连通性
+      env:
+        WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
+      run: |
+        echo "Webhook URL长度: ${#WECHAT_WEBHOOK_URL}"
+        echo "Webhook URL前30字符: ${WECHAT_WEBHOOK_URL:0:30}..."
+        echo "--- 发送测试消息 ---"
+        curl -s -X POST "$WECHAT_WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -d '{"msgtype":"text","text":{"content":"🔔 低空资讯推送系统测试：Webhook连通性测试成功！"}}'
+        echo ""
+        echo "--- 测试完成 ---"
+
     - name: 运行资讯推送程序
       env:
         WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
