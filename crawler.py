@@ -264,6 +264,82 @@ class NewsCrawler:
         
         return news_list
     
+    def fetch_article_summary(self, url, target_chars=100):
+        """
+        访问文章页面，提取约target_chars字的内容提要
+
+        Args:
+            url: 文章URL
+            target_chars: 目标字符数（中文）
+
+        Returns:
+            str: 内容提要
+        """
+        try:
+            response = self.session.get(url, timeout=10)
+            response.encoding = response.apparent_encoding
+            soup = BeautifulSoup(response.text, 'lxml')
+
+            # 移除无关元素
+            for tag in soup.find_all(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+                tag.decompose()
+
+            # 优先从article、main标签或常见正文class中提取
+            content_elem = (
+                soup.find('article')
+                or soup.find('main')
+                or soup.find('div', class_=re.compile(r'content|article-body|post-body|entry-content'))
+                or soup.find('div', id=re.compile(r'content|article'))
+                or soup.find('body')
+            )
+
+            if not content_elem:
+                return ''
+
+            # 提取所有段落文本
+            paragraphs = content_elem.find_all('p')
+            text_parts = []
+            for p in paragraphs:
+                t = p.get_text(strip=True)
+                if len(t) > 20:  # 跳过过短的段落（如广告文字）
+                    text_parts.append(t)
+
+            if not text_parts:
+                # 如果没找到段落，尝试获取整体文本
+                full_text = content_elem.get_text(separator=' ', strip=True)
+            else:
+                full_text = ' '.join(text_parts)
+
+            # 清理多余空白
+            full_text = re.sub(r'\s+', ' ', full_text).strip()
+
+            # 截取目标长度
+            if len(full_text) > target_chars:
+                full_text = full_text[:target_chars] + '...'
+
+            return full_text
+
+        except Exception as e:
+            print(f"  提取文章摘要失败 ({url[:60]}...): {str(e)}")
+            return ''
+
+    def enrich_with_summaries(self, news_list, target_chars=100):
+        """
+        为新闻列表补充内容提要（逐篇访问原文页面）
+
+        Args:
+            news_list: 新闻列表
+            target_chars: 每条提要的目标字符数
+        """
+        print("正在为精选资讯生成内容提要...")
+        for news in news_list:
+            existing_summary = news.get('summary', '')
+            if not existing_summary or len(existing_summary) < 50:
+                news['summary'] = self.fetch_article_summary(news['url'], target_chars)
+            elif len(existing_summary) > target_chars:
+                news['summary'] = existing_summary[:target_chars] + '...'
+            print(f"  ✓ {news['title'][:40]}...")
+
     def fetch_all_news(self):
         """
         从所有配置的资讯源抓取新闻

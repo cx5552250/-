@@ -52,9 +52,14 @@ def main():
         bot.send_markdown_message(content)
         return True
     print()
-    
-    # 5. 格式化输出
-    print("【步骤5】格式化资讯内容...")
+
+    # 5. 生成内容提要
+    print("【步骤5】生成内容提要...")
+    crawler.enrich_with_summaries(top_news, target_chars=100)
+    print()
+
+    # 6. 格式化输出
+    print("【步骤6】格式化资讯内容...")
     formatted_content = processor.format_news_for_display(top_news)
     print("✓ 格式化完成\n")
     
@@ -64,8 +69,8 @@ def main():
         print(formatted_content)
         print("============\n")
     
-    # 6. 推送到企业微信
-    print("【步骤6】推送到企业微信...")
+    # 7. 推送到企业微信
+    print("【步骤7】推送到企业微信...")
     success = bot.send_markdown_message(formatted_content)
     
     if success:
