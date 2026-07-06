@@ -49,7 +49,7 @@ KEYWORDS = [
 ]
 
 # 最大推送条数
-MAX_NEWS_COUNT = 10
+MAX_NEWS_COUNT = 5
 
 # 是否启用调试模式
 DEBUG = False

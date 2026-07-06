@@ -173,13 +173,21 @@ class NewsProcessor:
             url = news.get('url', '#')
             source = news.get('source', '未知来源')
             score = news.get('relevance_score', 0)
-            
+            summary = news.get('summary', '')
+
             # 限制标题长度
             if len(title) > 50:
                 title = title[:47] + '...'
-            
+
             output.append(f"{i}. 🔥 [{source}] {title}")
-            output.append(f"   链接: {url}")
+
+            # 添加内容概要
+            if summary:
+                if len(summary) > 100:
+                    summary = summary[:97] + '...'
+                output.append(f"   📝 {summary}")
+
+            output.append(f"   🔗 {url}")
             output.append(f"   相关度: {'⭐' * min(int(score/20), 5)}\n")
         
         output.append("---")
