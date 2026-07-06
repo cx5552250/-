@@ -1,45 +1,104 @@
 """
 低空行业资讯爬虫模块
-负责从多个资讯源抓取最新行业信息
+负责从多个资讯源（RSS/网页）抓取最新行业信息
 """
 
 import requests
+import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+from dateutil import parser as dateutil_parser
 import config
 import re
 
 
 class NewsCrawler:
     """新闻资讯爬虫类"""
-    
+
     def __init__(self):
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
         self.session = requests.Session()
         self.session.headers.update(self.headers)
-    
+
     def fetch_news_from_source(self, source):
         """
         从指定资讯源抓取新闻
-        
+
         Args:
             source: 资讯源配置字典
-            
+
         Returns:
             list: 新闻列表，每个元素为dict包含title, url, summary, publish_time, source
         """
         try:
-            if source.get('type') == 'web':
+            source_type = source.get('type', 'web')
+            if source_type == 'rss':
+                return self._fetch_rss_news(source)
+            elif source_type == 'web':
                 return self._fetch_web_news(source)
             else:
-                print(f"不支持的资讯源类型: {source.get('type')}")
+                print(f"不支持的资讯源类型: {source_type}")
                 return []
         except Exception as e:
             print(f"抓取资讯源 [{source['name']}] 失败: {str(e)}")
             return []
-    
+
+    def _fetch_rss_news(self, source):
+        """
+        从RSS源抓取新闻
+
+        Args:
+            source: 资讯源配置
+
+        Returns:
+            list: 新闻列表
+        """
+        news_list = []
+        url = source['url']
+        source_name = source['name']
+
+        try:
+            response = self.session.get(url, timeout=15)
+            feed = feedparser.parse(response.content)
+
+            for entry in feed.entries[:30]:
+                title = entry.get('title', '').strip()
+                link = entry.get('link', '')
+
+                if not title or len(title) < 5:
+                    continue
+
+                # 解析发布时间
+                publish_time = datetime.now()
+                pub_date_str = entry.get('published') or entry.get('updated', '')
+                if pub_date_str:
+                    try:
+                        publish_time = dateutil_parser.parse(pub_date_str, ignoretz=True)
+                    except Exception:
+                        pass
+
+                # 提取摘要（去除HTML标签）
+                summary = ''
+                if entry.get('summary'):
+                    summary = BeautifulSoup(entry['summary'], 'lxml').get_text(strip=True)[:200]
+
+                news_list.append({
+                    'title': title,
+                    'url': link,
+                    'summary': summary,
+                    'publish_time': publish_time,
+                    'source': source_name
+                })
+
+            print(f"成功从 [{source_name}] 抓取 {len(news_list)} 条新闻")
+            return news_list
+
+        except Exception as e:
+            print(f"解析RSS [{source_name}] 失败: {str(e)}")
+            return []
+
     def _fetch_web_news(self, source):
         """
         从网页抓取新闻（通用方法）
